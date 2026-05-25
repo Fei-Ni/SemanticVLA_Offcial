@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+title: "SemanticVLA: Semantic Vision-Language-Action Models with Trace-Conditioned Latent Action Tokens"
+message: "If you use this work, please cite it as below."
+authors:
+  - family-names: "SemanticVLA Authors"
+date-released: 2026-05-19
+url: "https://github.com/Fei-Ni/SemanticVLA_Offcial"
+license: MIT
+preferred-citation:
+  type: misc
+  title: "SemanticVLA: Semantic Vision-Language-Action Models with Trace-Conditioned Latent Action Tokens"
+  authors:
+    - family-names: "SemanticVLA Authors"
+  year: 2026
+  note: "Preprint and full bibliographic entry will be added once the paper is on arXiv."

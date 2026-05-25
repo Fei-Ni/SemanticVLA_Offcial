@@ -1,0 +1,60 @@
+data:
+  data_root: ${DATA_ROOT}/libero_lerobot
+  trace_root: ${TRACE_ANNOTATIONS_ROOT}/libero_lerobot_aligned
+  suites: [spatial, object, goal, "10"]
+  window_size: 12
+  action_horizon: 8
+  image_resolution: 224
+  video_key: observation.images.image
+  video_backend: torchvision_av
+  eval_stride: 10
+  eval_split: all
+  max_samples_per_suite:
+  eval_max_samples_per_suite: 2000
+  batch_size: 8
+  num_workers: 4
+
+model:
+  dino_repo_root: ${REPO_ROOT}/third_party/dinov2
+  dino_weights: ${DINOV2_WEIGHTS}/dinov2_vitb14_pretrain.pth
+  dino_variant: vitb14
+  model_dim: 768
+  enc_layers: 4
+  dec_layers: 6
+  num_heads: 8
+  decoder_ff_dim: 640
+  latent_dim: 768
+  trace_hidden_dim: 256
+  trace_layers: 12
+  trace_num_heads: 8
+  trace_tokens: 4
+  trace_num_latents: 32
+  trace_decoder_hidden_dim: 256
+  trace_decoder_layers: 5
+  trace_decoder_heads: 8
+  fusion_layers: 4
+  fusion_heads: 8
+  fusion_ff_dim: 512
+  max_trace_len: 12
+  stage1_warmup_steps: 10000
+  freeze_trace_stage_after_warmup: true
+  stage1_loss_weight: 1.0
+  trace_recon_loss_weight: 1.0
+  visual_recon_loss_weight: 1.0
+  action_trace_recon_loss_weight: 0.0
+  vq_beta: 0.25
+  dropout: 0.0
+  mock_dino: false
+
+trainer:
+  output_root: ${WORK_ROOT}/lam_train
+  seed: 42
+  max_steps: 10000
+  learning_rate: 1.0e-5
+  weight_decay: 1.0e-2
+  grad_clip: 1.0
+  precision: bf16
+  log_every: 20
+  eval_every: 1000
+  eval_batches: 64
+  save_every: 1000

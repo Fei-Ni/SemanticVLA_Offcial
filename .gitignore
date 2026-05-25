@@ -1,0 +1,51 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Local virtual envs / tooling
+.venv/
+.env
+.envrc
+env/
+venv/
+.python-version
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs / outputs / artifacts
+*.log
+runs/
+outputs/
+wandb/
+tmp*wandb*/
+slurm_logs/
+*.out
+*.err
+core
+core.*
+
+# Model and dataset binaries should not be committed to this repo
+*.pt
+*.safetensors
+*.bin
+*.tfrecord*
+*.parquet
+*.mp4
+*.npy
+*.npz
+
+# OS
+.DS_Store
+Thumbs.db

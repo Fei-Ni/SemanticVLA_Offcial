@@ -1,0 +1,135 @@
+run_id: semanticvla_oxe_bridge
+run_root_dir: ${WORK_ROOT}/vla_train
+seed: 42
+trackers: [jsonl, wandb]
+wandb_entity: nifei
+wandb_project: semanticvla
+is_debug: false
+
+framework:
+  name: SemanticVLA
+  qwenvl:
+    base_vlm: ${DATA_ROOT}/models/Qwen/Qwen3-VL-4B-Instruct
+    attn_implementation: flash_attention_2
+    vl_hidden_dim: 2048
+  dino:
+    dino_backbone: dinov2_vits14
+  action_model:
+    action_model_type: DiT-B
+    action_hidden_dim: 1024
+    hidden_size: 1024
+    add_pos_embed: true
+    max_seq_len: 1024
+    action_dim: 7
+    state_dim: 7
+    future_action_window_size: 15
+    action_horizon: 16
+    past_action_window_size: 0
+    repeated_diffusion_steps: 8
+    noise_beta_alpha: 1.5
+    noise_beta_beta: 1.0
+    noise_s: 0.999
+    num_timestep_buckets: 1000
+    num_inference_timesteps: 4
+    num_target_vision_tokens: 32
+    diffusion_model_cfg:
+      cross_attention_dim: 2048
+      dropout: 0.2
+      final_dropout: true
+      interleave_self_attention: true
+      norm_type: ada_norm
+      num_layers: 16
+      output_dim: 1024
+      positional_embeddings: null
+      trace_dim: 0
+    trace:
+      injection_mode: none
+      hidden_dim: 256
+      num_layers: 3
+      num_heads: 8
+      window_size: 12
+      num_tokens: 4
+      dropout: 0.1
+      num_anchor_points: 4
+      lm_aux_loss: false
+      aux_loss_weight: 0.1
+      coord_range: 1000
+      prompt_style: plain
+    semantic_output:
+      enabled: true
+      mode: trace_latent
+      order: trace_latent
+      lm_loss_weight: 0.1
+      latent_vocab_size: 32
+      latent_num_tokens: 2
+      latent_token_prefix: LAM
+      prompt_style: plain
+      trace_anchor_points: 4
+      parse_trace_for_decoder: false
+      trainable_token_rows: false
+  reduce_in_full_precision: true
+
+datasets:
+  vla_data:
+    dataset_py: lerobot_datasets
+    data_root_dir: ${DATA_ROOT}/datasets/OXE_LEROBOT_DATASET
+    data_mix: bridge
+    action_type: delta_ee
+    CoT_prompt: "Your task is {instruction}. To identify the key objects for your task. Locate their bounding boxes in [x1,y1,x2,y2] format."
+    CoT_answer: bbox
+    default_image_resolution: [3, 224, 224]
+    per_device_batch_size: 16
+    load_all_data_for_training: true
+    obs: ["image_0"]
+    image_size: [224, 224]
+    strict_sample_errors: true
+    sample_max_retries: 1
+    trace:
+      enabled: true
+      manager: oxe_npy
+      root: ${WORK_ROOT}/trace_npy_index
+      window_size: 12
+      normalize: true
+      num_anchor_points: 4
+    latent_action_labels:
+      enabled: false
+      root: ""
+      variant: ""
+      strict: true
+      missing_policy: clip
+      out_key: latent_action_idx
+
+trainer:
+  epochs: 100
+  max_train_steps: 100000
+  num_warmup_steps: 5000
+  save_interval: 5000
+  eval_interval: 100
+  learning_rate:
+    base: 4.0e-05
+    qwen_vl_interface: 1.0e-05
+    action_model: 1.0e-04
+  lr_scheduler_type: cosine_with_min_lr
+  scheduler_specific_kwargs:
+    min_lr: 5.0e-07
+  freeze_modules: ""
+  loss_scale:
+    vla: 1.0
+    vlm: 0.1
+  repeated_diffusion_steps: 4
+  max_grad_norm: 1.0
+  warmup_ratio: 0.1
+  weight_decay: 0.0
+  logging_frequency: 10
+  gradient_clipping: 1.0
+  gradient_accumulation_steps: 1
+  optimizer:
+    name: AdamW
+    betas: [0.9, 0.95]
+    eps: 1.0e-08
+    weight_decay: 1.0e-08
+  is_resume: false
+  resume_epoch: null
+  resume_step: null
+  enable_gradient_checkpointing: true
+  enable_mixed_precision_training: true

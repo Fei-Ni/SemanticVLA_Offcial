@@ -1,0 +1,84 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "semanticvla"
+version = "1.0.0"
+description = "SemanticVLA: Semantic Vision-Language-Action Models with Trace-Conditioned Latent Action Tokens"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [
+    {name = "SemanticVLA Authors"},
+]
+keywords = [
+    "vision-language-action",
+    "robotic manipulation",
+    "robot learning",
+    "multimodal",
+    "latent action model",
+    "trace prediction",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/Fei-Ni/SemanticVLA_Offcial"
+Repository = "https://github.com/Fei-Ni/SemanticVLA_Offcial"
+
+[project.optional-dependencies]
+dev = [
+    "black>=24.2.0",
+    "gpustat",
+    "ipython",
+    "pre-commit",
+    "ruff>=0.2.2",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = [
+    "tests",
+    "cache",
+    "results",
+    "checkpoints",
+    "scripts",
+    "eval",
+    ".vscode",
+    "*.egg-info",
+    "**.log",
+    "*.tmp",
+    "*.bak",
+    "**__pycache__**",
+    "*.pyc",
+    "*.pyo",
+    "semanticvla/config",
+]
+
+[tool.setuptools.package-data]
+"semanticvla" = ["py.typed"]
+
+[tool.black]
+line-length = 121
+target-version = ["py310"]
+preview = true
+
+[tool.ruff]
+line-length = 121
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["A", "B", "E", "F", "I", "RUF", "W"]
+ignore = ["F722"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402", "F401"]

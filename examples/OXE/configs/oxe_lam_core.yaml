@@ -1,0 +1,44 @@
+data:
+  trace_index_root: ${WORK_ROOT}/trace_npy_index
+  datasets: [bridge, fractal, bcz]
+  window_size: 12
+  action_horizon: 8
+  image_resolution: 224
+  eval_stride: 10
+  eval_split: all
+  sample_stride: 8
+  max_samples_per_dataset: 256
+  eval_max_samples_per_dataset: 128
+  max_episodes_per_dataset: 128
+  batch_size: 8
+  num_workers: 0
+
+model:
+  dino_repo_root: ${REPO_ROOT}/third_party/dinov2
+  dino_weights: ${DINOV2_WEIGHTS}/dinov2_vits14_pretrain.pth
+  dino_variant: vits14
+  model_dim: 384
+  enc_layers: 4
+  dec_layers: 4
+  num_heads: 6
+  latent_dim: 128
+  trace_hidden_dim: 256
+  trace_layers: 2
+  trace_tokens: 4
+  max_trace_len: 12
+  vq_beta: 0.25
+  dropout: 0.0
+  mock_dino: false
+
+trainer:
+  output_root: ${WORK_ROOT}/oxe_lam_train
+  seed: 42
+  max_steps: 100
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-2
+  grad_clip: 1.0
+  precision: bf16
+  log_every: 10
+  eval_every: 50
+  eval_batches: 8
+  save_every: 50
