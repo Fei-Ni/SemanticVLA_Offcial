@@ -26,6 +26,7 @@ import torch
 import torch.nn as nn
 from PIL import Image
 
+from semanticvla.device import autocast, device_type
 from semanticvla.model.framework.base_framework import baseframework
 from semanticvla.model.modules.action_model.GR00T_ActionHeader import DiTConfig
 from semanticvla.model.modules.action_model.SemanticVLA_ActionHeader import (
@@ -388,6 +389,7 @@ class SemanticVLA(baseframework):
                  generated text into coords and feed through the action head's
                  TraceEncoder for sa_embs / adaln injection.
         """
+        vlm_device = self.qwen_vl_interface.model.device
         train_obs_image_size = getattr(self.config.datasets.vla_data, "image_size", None)
         if train_obs_image_size:
             batch_images = resize_images(batch_images, target_size=train_obs_image_size)
@@ -401,7 +403,7 @@ class SemanticVLA(baseframework):
             )
 
             tokenizer = self.qwen_vl_interface.processor.tokenizer
-            with torch.autocast("cuda", dtype=torch.bfloat16):
+            with autocast(vlm_device, torch.bfloat16):
                 gen_out = self.qwen_vl_interface.model.generate(
                     **prompt_inputs,
                     max_new_tokens=self._semantic_max_new_tokens(),
@@ -426,7 +428,7 @@ class SemanticVLA(baseframework):
             full_inputs = {k: v for k, v in prompt_inputs.items() if k not in ("input_ids", "attention_mask", "labels")}
             full_inputs["input_ids"] = gen_out
             full_inputs["attention_mask"] = new_attn
-            with torch.autocast("cuda", dtype=torch.bfloat16):
+            with autocast(vlm_device, torch.bfloat16):
                 full_outputs = self.qwen_vl_interface(
                     **full_inputs,
                     output_attentions=False,
@@ -471,7 +473,7 @@ class SemanticVLA(baseframework):
                 max_new = 8 * n_anchors + 8
 
             tokenizer = self.qwen_vl_interface.processor.tokenizer
-            with torch.autocast("cuda", dtype=torch.bfloat16):
+            with autocast(vlm_device, torch.bfloat16):
                 gen_out = self.qwen_vl_interface.model.generate(
                     **prompt_inputs,
                     max_new_tokens=int(max_new),
@@ -498,7 +500,7 @@ class SemanticVLA(baseframework):
             full_inputs = {k: v for k, v in prompt_inputs.items() if k not in ("input_ids", "attention_mask", "labels")}
             full_inputs["input_ids"] = gen_out
             full_inputs["attention_mask"] = new_attn
-            with torch.autocast("cuda", dtype=torch.bfloat16):
+            with autocast(vlm_device, torch.bfloat16):
                 full_outputs = self.qwen_vl_interface(
                     **full_inputs,
                     output_attentions=False,
@@ -524,7 +526,7 @@ class SemanticVLA(baseframework):
             qwen_inputs = self.qwen_vl_interface.build_qwenvl_inputs(
                 images=batch_images, instructions=instructions
             )
-            with torch.autocast("cuda", dtype=torch.bfloat16):
+            with autocast(vlm_device, torch.bfloat16):
                 qwenvl_outputs = self.qwen_vl_interface(
                     **qwen_inputs,
                     output_attentions=False,
@@ -550,7 +552,14 @@ class SemanticVLA(baseframework):
             do_sample = do_sample.lower() in {"1", "true", "yes"}
         sample_seed = kwargs.get("sample_seed")
 
-        with torch.autocast("cuda", dtype=torch.float32):
+        if device_type(vlm_device) != "cuda":
+            # Only CUDA autocast casts the bf16 VLM features for the float32 head.
+            head_dtype = next(self.action_model.parameters()).dtype
+            last_hidden = last_hidden.to(head_dtype)
+            state_t = state_t.to(head_dtype) if state_t is not None else None
+            trace_t = trace_t.to(head_dtype) if trace_t is not None else None
+
+        with autocast(vlm_device, torch.float32):
             pred_actions = self.action_model.predict_action(
                 last_hidden,
                 state_t,
@@ -559,4 +568,4 @@ class SemanticVLA(baseframework):
                 trace_coords_window=trace_t,
             )
 
-        return {"normalized_actions": pred_actions.detach().cpu().numpy()}
+        return {"normalized_actions": pred_actions.detach().float().cpu().numpy()}

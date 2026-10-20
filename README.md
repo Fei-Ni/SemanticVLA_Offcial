@@ -143,6 +143,26 @@ policy.eval()
 
 Full inference and training recipes live in [`docs/INFERENCE.md`](docs/INFERENCE.md) and [`docs/TRAINING.md`](docs/TRAINING.md).
 
+### How to run the same on Intel's XPU
+
+Install the XPU build of PyTorch instead of a CUDA wheel, then the remaining requirements. Skip `flash-attn` and `deepspeed`; with a non-CUDA device the Qwen3-VL backbone uses SDPA attention automatically.
+
+```bash
+pip install torch torchvision --index-url https://download.pytorch.org/whl/xpu
+pip install "transformers==4.57.0" "huggingface-hub<1.0" accelerate omegaconf einops timm diffusers rich qwen-vl-utils websockets msgpack
+```
+
+The loader picks XPU first, then CUDA, then CPU. Select a card with `ZE_AFFINITY_MASK` where you would use `CUDA_VISIBLE_DEVICES`, or pass `--device`:
+
+```bash
+ZE_AFFINITY_MASK=0 python -m deployment.model_server.server_policy --ckpt_path ./SemanticVLA-LIBERO/final_model/pytorch_model.pt --use_bf16
+ZE_AFFINITY_MASK=0 python deployment/model_server/predict_action_offline.py --run-dir ./SemanticVLA-LIBERO --image frame.png --task "pick up the bowl"
+```
+
+The loader looks for `config.yaml` and `dataset_statistics.json` two directory levels above the `.pt` file, so keep the downloaded `pytorch_model.pt` under a `final_model/` folder inside the checkpoint directory.
+
+Only the inference entry points above (policy loading, `predict_action`, the websocket server and the offline script) were ported. Simulators and the data and trace-annotation tools still expect CUDA.
+
 ## 🦾 Real-Robot Deployment
 
 For real-robot serving (Arx5 reference example bundled with the repo), see [`examples/REAL/arx/README.md`](examples/REAL/arx/README.md). The same `server_policy` interface used by SimplerEnv evaluations applies on real hardware via a WebSocket bridge.

@@ -6,6 +6,7 @@ import argparse
 from deployment.model_server.tools.websocket_policy_server import WebsocketPolicyServer
 from semanticvla.model.framework.base_framework import baseframework
 import torch, os
+from semanticvla.device import resolve_device
 
 
 def main(args) -> None:
@@ -20,7 +21,7 @@ def main(args) -> None:
 
     if args.use_bf16: # False
         vla = vla.to(torch.bfloat16)
-    vla = vla.to("cuda").eval()
+    vla = vla.to(resolve_device(args.device)).eval()
 
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)
@@ -42,6 +43,7 @@ def build_argparser():
     parser.add_argument("--ckpt_path", type=str, default="Qwen/Qwen2.5-VL-3B-Instruct")
     parser.add_argument("--port", type=int, default=10093)
     parser.add_argument("--use_bf16", action="store_true")
+    parser.add_argument("--device", type=str, default=None, help="cuda, xpu or cpu (default: detect, XPU then CUDA then CPU)")
     return parser
 
 

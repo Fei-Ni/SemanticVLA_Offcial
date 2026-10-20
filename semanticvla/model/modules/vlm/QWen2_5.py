@@ -1,6 +1,8 @@
 # Copyright 2025 semanticvla community. All rights reserved.
 # Licensed under the MIT License, Version 1.0 (the "License"); 
 import torch
+from semanticvla.device import attn_implementation as resolve_attn_implementation
+from semanticvla.device import autocast, default_device_type
 import transformers
 from typing import Optional, List
 import copy
@@ -83,7 +85,8 @@ class _QWen_VL_Interface(nn.Module):
         qwenvl_config = config.framework.get("qwenvl", {})
         model_id = qwenvl_config.get("base_vlm", "Qwen/Qwen2.5-VL-3B-Instruct")
         attn_implementation = qwenvl_config.get("attn_implementation", "flash_attention_2")
-        device_map = qwenvl_config.get("device_map", "cuda")
+        device_map = qwenvl_config.get("device_map", default_device_type())
+        attn_implementation = resolve_attn_implementation(attn_implementation, device_map)
         torch_dtype = qwenvl_config.get("torch_dtype", "auto")
 
         model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
@@ -140,7 +143,7 @@ class _QWen_VL_Interface(nn.Module):
             - Hidden states required for auxiliary alignment or feature extraction modules.
         """
 
-        with torch.autocast("cuda", dtype=torch.bfloat16):
+        with autocast(self.model.device, torch.bfloat16):
             outputs = self.model(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
@@ -170,7 +173,7 @@ class _QWen_VL_Interface(nn.Module):
         Returns:
             GenerateOutput | Model-dependent generation return.
         """
-        with torch.autocast("cuda", dtype=torch.float16):
+        with autocast(self.model.device, torch.float16):
             generation_output = self.model.generate(
                 **kwargs,
             )

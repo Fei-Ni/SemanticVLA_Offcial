@@ -41,10 +41,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from semanticvla.device import resolve_device  # noqa: E402
 from semanticvla.model.framework import build_framework  # noqa: E402
 
 
-def load_model(run_dir: Path, ckpt_path: Path | None, device: str = "cuda"):
+def load_model(run_dir: Path, ckpt_path: Path | None, device: str | None = None):
+    device = resolve_device(device)
     cfg_path = run_dir / "config.yaml"
     if ckpt_path is None:
         # Prefer final_model/; otherwise pick the highest-step file under checkpoints/.
@@ -58,6 +60,7 @@ def load_model(run_dir: Path, ckpt_path: Path | None, device: str = "cuda"):
     cfg = OmegaConf.load(cfg_path)
     cfg.trainer.pretrained_checkpoint = None
     cfg.trainer.is_resume = False
+    cfg.framework.qwenvl.device_map = str(device)
 
     model = build_framework(cfg)
     state_dict = torch.load(ckpt_path, map_location="cpu")
@@ -124,7 +127,7 @@ def main():
                         help="An RGB image (any size; resized to 224x224)")
     parser.add_argument("--task", type=str, required=True,
                         help="Language instruction matching the training distribution.")
-    parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"])
+    parser.add_argument("--device", default=None, help="cuda, xpu or cpu (default: detect, XPU then CUDA then CPU)")
     args = parser.parse_args()
 
     model, cfg, ckpt_path = load_model(args.run_dir, args.ckpt, device=args.device)

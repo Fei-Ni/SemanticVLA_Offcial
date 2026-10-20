@@ -1,6 +1,8 @@
 # Copyright 2025 semanticvla community. All rights reserved.
 # Licensed under the MIT License, Version 1.0 (the "License"); 
 import torch
+from semanticvla.device import attn_implementation as resolve_attn_implementation
+from semanticvla.device import autocast, default_device_type
 import torch.nn.functional as F
 from typing import Optional, List, Dict, Tuple
 from transformers.modeling_outputs import CausalLMOutputWithPast
@@ -53,7 +55,8 @@ class _QWen3_VL_Interface(nn.Module):
         qwenvl_config = config.framework.get("qwenvl", {})
         model_id = qwenvl_config.get("base_vlm", "Qwen/Qwen3-VL-4B-Instruct")
         attn_implementation = qwenvl_config.get("attn_implementation", "flash_attention_2")
-        device_map = qwenvl_config.get("device_map", "cuda")
+        device_map = qwenvl_config.get("device_map", default_device_type())
+        attn_implementation = resolve_attn_implementation(attn_implementation, device_map)
 
         model = Qwen3VLForConditionalGeneration.from_pretrained(
             model_id,
@@ -81,7 +84,7 @@ class _QWen3_VL_Interface(nn.Module):
         Forward pass delegating to underlying Qwen2.5-VL backbone.
         """
 
-        with torch.autocast("cuda", dtype=torch.bfloat16):
+        with autocast(self.model.device, torch.bfloat16):
             outputs = self.model(
                 **kwargs,
             )
@@ -100,7 +103,7 @@ class _QWen3_VL_Interface(nn.Module):
         Returns:
             GenerateOutput | Model-dependent generation return.
         """
-        with torch.autocast("cuda", dtype=torch.float16):
+        with autocast(self.model.device, torch.float16):
             generation_output = self.model.generate(
                 **kwargs,
             )
@@ -208,7 +211,7 @@ class _QWen3_VL_Interface(nn.Module):
         image_grid_thw = vision_inputs["image_grid_thw"]
         sample_image_counts = vision_inputs["sample_image_counts"]
 
-        with torch.autocast("cuda", dtype=torch.bfloat16):
+        with autocast(self.model.device, torch.bfloat16):
             per_image_tokens = self._extract_vit_patch_tokens(pixel_values, image_grid_thw)
             per_image_pooled = torch.stack(
                 [tokens.mean(dim=0) for tokens in per_image_tokens],
